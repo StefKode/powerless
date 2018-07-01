@@ -2,16 +2,72 @@
 ##########################################################################################
 # Powerlessd
 #
-# Power Saving Tool for Thinpad (E550)
+# Power Saving Tool for Linux @ Thinpad (E550)
 # Copyright: 2018, Stefan Koch <s-koch@posteo.de>
 # License  : GPLv3, see LICENSE file
 ##########################################################################################
 
+#########################################################
+# Cmd line arguments
+
+# run in background
+daemonize=1
 # dimmed brightness
 MIN_BLIGHT=6
-
 # when to detect idle
 IDLE_TIMER=30
+
+firstarg="$1"
+while [ "$1" != "" ];
+do
+	case "$1" in
+		"__run_")
+			#I am a fork
+			#keep bash happy but do nothing
+			a=1
+			;;
+		"-f")
+			daemonize=0
+			;;
+		"-minblight")
+			shift
+			if [ "$1" = "" ]; then
+				echo  "need minimal backlight value"
+				exit 1
+			fi
+			MIN_BLIGHT=$1
+			;;
+		"-idletime")
+			shift
+			if [ "$1" = "" ]; then
+				echo  "need idle time value"
+				exit 1
+			fi
+			IDLE_TIMER=$1
+			;;
+		*)
+			echo "Unknown argument"
+			exit 1
+	esac
+	shift
+done
+
+if [ "$firstarg" != "__run_" ]; then
+	# summary
+	echo "Powerless, v0.1"
+	echo "Daemonize         = $daemonize"
+	echo "Minimal Backlight = $MIN_BLIGHT"
+	echo "Idle timer        = $IDLE_TIMER"
+
+	if [ $daemonize -eq 1 ]; then
+		echo "fork daemon.."
+		$0 __run_ "$@" &
+		exit 0
+	fi
+fi
+
+#########################################################
+# run
 
 SYS_AC="/sys/class/power_supply/AC/online"
 SYS_BACKLIGHT="/sys/class/backlight/intel_backlight/brightness"
