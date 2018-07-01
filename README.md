@@ -4,9 +4,9 @@ Powersaving Tool for Thinkpad E550
 ## Installation
 1. Add user to "video" group
 2. Install systemd service using
-..* sudo cp systemd/backlight* /etc/systemd/system
-..* sudo systemctl enable backlight.service
-..* sudo systemctl start backlight.service
+* sudo cp systemd/backlight* /etc/systemd/system
+* sudo systemctl enable backlight.service
+* sudo systemctl start backlight.service
 3. Add powerlessd as startup application to your WM (e.g. Gnome session)
 
 This is a prototype - only use it with care for one single user on your system
