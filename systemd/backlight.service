@@ -1,0 +1,9 @@
+[Unit]
+Description=Backlight
+
+[Service]
+Type=simple
+ExecStart=/etc/systemd/system/backlight
+
+[Install]
+WantedBy=multi-user.target

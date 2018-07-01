@@ -1,0 +1,121 @@
+#!/bin/bash
+##########################################################################################
+# Powerlessd
+#
+# Power Saving Tool for Thinpad (E550)
+# Copyright: 2018, Stefan Koch <s-koch@posteo.de>
+# License  : GPLv3, see LICENSE file
+##########################################################################################
+
+# dimmed brightness
+MIN_BLIGHT=6
+
+# when to detect idle
+IDLE_TIMER=30
+
+SYS_AC="/sys/class/power_supply/AC/online"
+SYS_BACKLIGHT="/sys/class/backlight/intel_backlight/brightness"
+SYS_MAXBLIGHT="/sys/class/backlight/intel_backlight/max_brightness"
+DBUS_SESS="type=signal,interface=org.gnome.SessionManager.Presence,member=StatusChanged"
+DBUS_FILT="interface=org.gnome.SessionManager.Presence; member=StatusChanged"
+
+function powerDown {
+	echo "PowerDown"
+	c=$(cat $SYS_BACKLIGHT)
+	min=$[ $MIN_BLIGHT + 5 ]
+	while [ $c -gt $min ];
+	do
+		c=$[ $c - 5 ]
+		echo $c > $SYS_BACKLIGHT
+		sleep 0.05
+		check=$(cat $SYS_BACKLIGHT)
+		if [ $check -gt $c ]; then
+			#somebody has powered backlight back on
+			echo "premature abort of powerdown"
+			exit 0
+		fi
+	done
+	#finally bring down cpu
+	sudo cpufreq-set -g powersave
+}
+
+function powerUp {
+	echo "PowerUp"
+	sudo cpufreq-set -g performance
+	#to avoid need for process synchronization:
+	sleep 0.5
+	sudo cpufreq-set -g performance
+
+	c=$(cat $SYS_BACKLIGHT)
+	max=$[ $(cat $SYS_MAXBLIGHT) - 10 ]
+	while [ $c -lt $max ];
+	do
+		c=$[ $c + 10 ]
+		echo $c > $SYS_BACKLIGHT
+		sleep 0.01
+	done
+}
+
+function isonAC {
+	cat $SYS_AC
+}
+
+function handle_value {
+	if [ $1 -eq 3 ]; then
+		#only powerdown if not on AC
+		if [ $(isonAC) -eq 0 ]; then
+			powerDown&
+		fi
+	fi
+
+	if [ $1 -eq 0 ]; then
+		powerUp
+	fi
+}
+
+cat $SYS_MAXBLIGHT > $SYS_BACKLIGHT
+gsettings set org.gnome.desktop.session idle-delay $IDLE_TIMER
+gsettings set org.gnome.settings-daemon.plugins.power idle-brightness 100
+
+expect_val=0
+value=99
+ac_mode=0
+
+while [ 1 ];
+do
+	read -t 2 line
+	readrc=$?
+	if [ $readrc -ne 0 ]; then
+		isAC=$(isonAC)
+		if [ $isAC -eq 1 -a $ac_mode -eq 0 ]; then
+			echo "AC plugged in"
+			powerUp
+		fi
+		if [ $isAC -eq 0 -a $ac_mode -eq 1 -a $value -eq 3 ]; then
+			echo "AC unplugged"
+			powerDown
+		fi
+		ac_mode=$isAC
+		continue
+	fi
+
+	if [ $expect_val -eq 1 ]; then
+		if [ "$(echo $line | grep uint32)" = "" ]; then
+			# some error
+			expect_val=0
+			continue
+		fi
+		value=$(echo $line | awk '{print $2}')
+		#echo $value
+		handle_value $value
+		expect_val=0
+	fi
+	
+	check=$(echo "$line" | grep "$DBUS_FILT")
+	if [ "$check" != "" ]; then
+		expect_val=1
+		continue
+	fi
+	
+done < <(dbus-monitor --session "$DBUS_SESS")
+

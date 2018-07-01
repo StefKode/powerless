@@ -1,0 +1,12 @@
+#!/bin/bash
+##########################################################################################
+# Powerlessd
+#
+# Power Saving Tool for Thinpad (E550)
+# Copyright: 2018, Stefan Koch <s-koch@posteo.de>
+# License  : GPLv3, see LICENSE file
+##########################################################################################
+
+echo "Enable video group access to backlight"
+/bin/chgrp video /sys/class/backlight/intel_backlight/brightness
+/bin/chmod g+w   /sys/class/backlight/intel_backlight/brightness
