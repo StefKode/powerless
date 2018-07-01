@@ -7,7 +7,8 @@ Powersaving Tool for Thinkpad E550
 * sudo cp systemd/backlight* /etc/systemd/system
 * sudo systemctl enable backlight.service
 * sudo systemctl start backlight.service
-3. Add powerlessd as startup application to your WM (e.g. Gnome session)
+3. Adjust backlight sys-path in powerlessd for your system
+4. Add powerlessd as startup application to your WM (e.g. Gnome session)
 
 This is a prototype - only use it with care for one single user on your system
 
