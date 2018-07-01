@@ -21,3 +21,6 @@ Just start it. You can specify the following options:
                     /sys/class/backlight/intel_backlight/max_brightness
 
 -idletime <value> : amount of seconds before to dim
+
+# Warning
+running it as startup application seems to cause a busy loop problem sometimes. Is under investigtion...
